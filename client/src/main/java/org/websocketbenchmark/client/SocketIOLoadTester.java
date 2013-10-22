@@ -13,6 +13,15 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.math.stat.descriptive.SummaryStatistics;
+import org.apache.commons.cli2.Argument;
+import org.apache.commons.cli2.CommandLine;
+import org.apache.commons.cli2.Group;
+import org.apache.commons.cli2.Option;
+import org.apache.commons.cli2.builder.ArgumentBuilder;
+import org.apache.commons.cli2.builder.DefaultOptionBuilder;
+import org.apache.commons.cli2.builder.GroupBuilder;
+import org.apache.commons.cli2.commandline.Parser;
+import org.apache.commons.cli2.util.HelpFormatter;
 
 public class SocketIOLoadTester extends Thread implements
 		SocketIOClientEventListener {
@@ -30,9 +39,7 @@ public class SocketIOLoadTester extends Thread implements
 			400, 500, 750, 1000, 1250, 1500, 2000 };
 	private static final int MAX_MESSAGES_PER_SECOND_SENT = 800;
 
-	// public static final int[] concurrencyLevels = {10, 25, 50};
-
-	protected Set<SocketIOClient> clients = new HashSet<SocketIOClient>();
+	protected Set<TestClient> clients = new HashSet<TestClient>();
 
 	protected int concurrency;
 
@@ -47,9 +54,18 @@ public class SocketIOLoadTester extends Thread implements
 	private boolean postTestTimeout;
 
 	private boolean testRunning;
+	
+	protected String vHost;
+	
+	private static String driver = "websocket";
 
-	protected SocketIOLoadTester(ArrayList<Integer> concurrencies) {
+	protected SocketIOLoadTester(String host, Integer port, ArrayList<Integer> concurrencies) {
+		this.vHost = host + ':' + port;
+		
+		printInfo();
+		
 		if (concurrencies.size() > 0) {
+
 			System.out.print("Using custom concurrency levels: ");
 			this.concurrencyLevels = new int[concurrencies.size()];
 
@@ -63,6 +79,13 @@ public class SocketIOLoadTester extends Thread implements
 
 			System.out.println();
 		}
+		
+
+	}
+	
+	public void printInfo() {
+		System.out.printf("Test for %s\n", this.vHost);
+		System.out.printf("use %s driver\n", SocketIOLoadTester.driver);		
 	}
 
 	@Override
@@ -95,7 +118,7 @@ public class SocketIOLoadTester extends Thread implements
 					.performLoadTest();
 
 			// shutdown all the clients
-			for (SocketIOClient c : this.clients) {
+			for (TestClient c : this.clients) {
 				try {
 					c.close();
 				} catch (IOException e) {
@@ -135,9 +158,10 @@ public class SocketIOLoadTester extends Thread implements
 		this.clients.clear();
 
 		for (int i = 0; i < this.concurrency; i++) {
-			SocketIOClient client = new SocketIOClient(
-					SocketIOClient.getNewSocketURI("roar.media.mit.edu:8080"),
-					this);
+			TestClient client = factoryClient( SocketIOLoadTester.driver, vHost, this);
+//			SocketIOClient client = new SocketIOClient(
+//					SocketIOClient.getNewSocketURI(vHost),
+//					this);
 			this.clients.add(client);
 			client.connect();
 		}
@@ -149,8 +173,28 @@ public class SocketIOLoadTester extends Thread implements
 		}
 		System.out.println("Woken up - time to start load test!");
 	}
-
-	protected Map<Double, SummaryStatistics> performLoadTest() {
+	
+	protected TestClient factoryClient(String driverName, String host, SocketIOLoadTester listener){
+		TestClient client;
+		
+		if (driverName.equals("websocket")) 
+		{
+			SocketIOClient wscdriver = new SocketIOClient(SocketIOClient.getNewSocketURI(host), listener);
+			client = new TestWebSocketClient(wscdriver);
+		}
+		else if (driverName.equals("xhr-polling"))
+		{
+			client = new TestXHRPollingClient(TestXHRPollingClient.getNewSocketURI(host), listener);
+		} 
+		else 
+		{
+			client = null;
+		}
+		
+		return client;
+	}
+	
+    protected Map<Double, SummaryStatistics> performLoadTest() {
 		// Actually run the test.
 		// Protocol is spend 3 seconds at each load level, then ramp up messages
 		// per second.
@@ -237,11 +281,11 @@ public class SocketIOLoadTester extends Thread implements
 		// exactly a second to run, so the messages are spread out across the
 		// full second.
 
-		Iterator<SocketIOClient> clientsIterator = this.clients.iterator();
+		Iterator<TestClient> clientsIterator = this.clients.iterator();
 		for (int i = 0; i < totalMessages; i++) {
 			long messageStartTime = System.currentTimeMillis();
 
-			SocketIOClient client = clientsIterator.next();
+			TestClient client = clientsIterator.next();
 			client.sendTimestampedChat();
 
 			if (!clientsIterator.hasNext()) {
@@ -331,20 +375,127 @@ public class SocketIOLoadTester extends Thread implements
 	 */
 	public static void main(String[] args) {
 		// Just start the thread.
-
+		String host = "";
+		Integer port = 8080;
 		ArrayList<Integer> concurrencies = new ArrayList<Integer>();
-		if (args.length > 0) {
-			// Assume all the arguments are concurrency levels we want to test
-			// at.
+		
+		CommandLine cl = generateCommandSettings(args);
+		
+ 		if (cl == null) {
+ 			System.exit(-1);
+ 		}
+ 		
+ 		if (cl.hasOption("host")){
+ 			host = (String)cl.getValue("host");
+ 		}
+ 		
+ 		if (cl.hasOption("--port")){
+ 			port = Integer.parseInt((String)cl.getValue("--port"));
+ 		}
+		
+ 		if (cl.hasOption("--concurrencies")){
+ 			String levelString = (String) cl.getValue("--concurrencies");
+ 			String[] levels = levelString.split("(,| )");
+ 			for (String level : levels){
+ 			    //doTarget(target);
+ 			    concurrencies.add(new Integer(level));
+ 			}
+ 		}
+ 		
+ 		if (cl.hasOption("--driver")){
+ 			driver = (String) cl.getValue("--driver");
+ 		} 
+//		if (args.length > 0) {
+//			// Assume all the arguments are concurrency levels we want to test
+//			// at.
+//
+//			for (String arg : args) {
+//				concurrencies.add(new Integer(arg));
+//			}
+//		}
 
-			for (String arg : args) {
-				concurrencies.add(new Integer(arg));
-			}
-		}
-
-		SocketIOLoadTester tester = new SocketIOLoadTester(concurrencies);
+		SocketIOLoadTester tester = new SocketIOLoadTester(host, port, concurrencies);
 		tester.start();
 	}
+	
+	protected static CommandLine generateCommandSettings(String[] args){
+		DefaultOptionBuilder oBuilder = new DefaultOptionBuilder();
+		ArgumentBuilder aBuilder = new ArgumentBuilder();
+		GroupBuilder gBuilder = new GroupBuilder();
+
+		Argument hostArgument = 
+		    aBuilder
+		        .withName("host")
+		        .withMinimum(1)
+		        .withMaximum(1)
+		        .withDescription("remote server host name dns or ip")
+		        .create();
+		
+		Argument portArgument = 
+			aBuilder
+				.withName("post")
+				.withMinimum(1)
+				.withMaximum(1)
+				.create();
+	
+	    Argument concurrentLevelsArgument =
+			aBuilder
+				.withName("levels")
+				.withMinimum(1)
+				.withMaximum(1)				
+				.create();
+	    
+	    Argument driverArgument = 
+		    aBuilder
+		    	.withName("driver")
+		    	.withMinimum(1)
+		    	.withMaximum(1)
+		    	.create();
+	   
+		Option portOption = 
+			oBuilder
+				.withShortName("p")
+				.withLongName("port")
+				.withArgument(portArgument)
+				.withDescription("remote server port number.(etc 8080)")
+				.create();
+		
+		Option concurrenciesOption =
+			oBuilder
+				.withShortName("c")
+				.withLongName("concurrencies")
+				.withArgument(concurrentLevelsArgument)
+				.withDescription("test start levels, [1,10,25,50,75,...2000] ")
+				.create();
+		
+		Option driverOption = 
+			oBuilder
+				.withShortName("d")
+				.withLongName("driver")
+				.withArgument(driverArgument)
+				.withDescription("use difference protocol driver.(etc websocket, xhr-polling)")
+				.create();
+		
+		Group optionsGroup = 
+			gBuilder
+				.withName("options")
+				.withOption(hostArgument)
+				.withOption(portOption)
+				.withOption(concurrenciesOption)
+				.withOption(driverOption)
+				.create();
+				
+		HelpFormatter hf = new HelpFormatter();
+
+		// configure a parser
+		Parser p = new Parser();
+		p.setGroup(optionsGroup);
+		p.setHelpFormatter(hf);
+		p.setHelpTrigger("--help");
+		
+		return p.parseAndHelp(args);
+	}
+	
 
 	public void onError(IOException e) {
 		// TODO Auto-generated method stub

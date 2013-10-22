@@ -33,12 +33,13 @@ public class SocketIOClient extends WebSocketClient {
 
 	@Override
 	public void onClose() {
+//		httpclient.close();
 		this.listener.onClose();
 	}
 
 	@Override
 	public void onIOError(IOException arg0) {
-		System.out.println("error: " + arg0);
+		System.out.println("error: " + arg0.getMessage());
 	}
 
 	@Override

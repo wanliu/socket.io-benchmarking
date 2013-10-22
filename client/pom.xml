@@ -1,44 +1,64 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
 
-  <groupId>org.socketiobenchmarking.client</groupId>
-  <artifactId>socketio-benchmarking</artifactId>
-  <version>0.1-SNAPSHOT</version>
-  <packaging>jar</packaging>
+	<groupId>org.socketiobenchmarking.client</groupId>
+	<artifactId>socketio-benchmarking</artifactId>
+	<version>0.1-SNAPSHOT</version>
+	<packaging>jar</packaging>
 
-  <name>Socket.io Benchmarking</name>
-  <url>https://github.com/drewww/socket.io-benchmarking</url>
+	<name>Socket.io Benchmarking</name>
+	<url>https://github.com/drewww/socket.io-benchmarking</url>
 
-  <dependencies>
-  	<dependency>
-  		<groupId>org.apache.commons</groupId>
-  		<artifactId>commons-math</artifactId>
-  		<version>2.2</version>
-  		<type>jar</type>
-  		<scope>compile</scope>
-  	</dependency>
-  	<dependency>
-  		<groupId>com.netiq</groupId>
-  		<artifactId>websocket</artifactId>
-  		<version>0.7</version>
-  		<type>jar</type>
-  		<scope>compile</scope>
-  	</dependency>
-  </dependencies>
-  
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>2.4</version>
-        <configuration>
-          <source>1.5</source>
-          <target>1.5</target>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
-  
+	<dependencies>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-math</artifactId>
+			<version>2.2</version>
+			<type>jar</type>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.netiq</groupId>
+			<artifactId>websocket</artifactId>
+			<version>0.7</version>
+			<type>jar</type>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.mahout.commons</groupId>
+			<artifactId>commons-cli</artifactId>
+			<version>2.0-mahout</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpclient</artifactId>
+			<version>4.3.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpasyncclient</artifactId>
+			<version>4.0-beta4</version>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>2.4</version>
+				<configuration>
+					<source>1.5</source>
+					<target>1.5</target>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-build-plugin</artifactId>
+				<version>1.4</version>
+			</plugin>
+		</plugins>
+	</build>
+
 </project>
